@@ -2,10 +2,10 @@ name: "Build and Release"
 
 on:
   push:
-    branches: ["master"]  # 当推送到 master 分支时触发
+    branches: ["master"]
   pull_request:
-    branches: ["master"]  # 当针对 master 分支的 PR 时触发
-  workflow_dispatch:       # 支持手动触发
+    branches: ["master"]
+  workflow_dispatch:
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
@@ -40,6 +40,19 @@ jobs:
             mingw-w64-ucrt-x86_64-nlohmann-json
             mingw-w64-ucrt-x86_64-miniupnpc
             mingw-w64-ucrt-x86_64-toolchain
+
+      # 安装 MinHook
+      - name: Install MinHook
+        shell: msys2 {0}
+        run: |
+          git clone https://github.com/TsudaKageyu/minhook.git
+          cd minhook
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" ..
+          mingw32-make
+          cp libMinHook.a /usr/local/lib/
+          cp ../include/MinHook.h /usr/local/include/
 
       # 构建项目
       - name: Build Project
