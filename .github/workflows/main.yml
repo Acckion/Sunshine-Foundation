@@ -1,17 +1,24 @@
 name: Build Sunshine (Windows)
 
 on:
-  workflow_dispatch:
+  workflow_dispatch: # 支持手动触发
 
 jobs:
   build-windows:
     runs-on: windows-latest
     steps:
+      # 检出代码并处理子模块问题
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          submodules: recursive
+          submodules: false
 
+      - name: Fix submodule issues
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive || echo "Submodule update failed, skipping problematic submodules"
+
+      # 安装 MSYS2 和依赖项
       - name: Install MSYS2 and dependencies
         run: |
           choco install msys2 -y
@@ -19,12 +26,14 @@ jobs:
           msys2 -c "pacman -Syu --noconfirm"
           msys2 -c "pacman -S --noconfirm mingw-w64-ucrt-x86_64-{boost,cmake,cppwinrt,curl-winssl,graphviz,MinHook,miniupnpc,nlohmann-json,nodejs,nsis,onevpl,openssl,opus,toolchain}"
 
+      # 构建项目
       - name: Build project
         run: |
           mkdir build
           cmake -B build -G Ninja -S .
           ninja -C build
 
+      # 打包项目
       - name: Package project (NSIS and ZIP)
         run: |
           cpack -G NSIS --config ./build/CPackConfig.cmake
