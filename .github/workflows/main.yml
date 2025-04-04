@@ -54,7 +54,7 @@ jobs:
           cd build
           cmake -G "MinGW Makefiles" ..
           mingw32-make
-          cp libMinHook.a /usr/local/lib/
+          cp minhook.a /usr/local/lib/
           cp ../include/MinHook.h /usr/local/include/
 
       # 构建项目
