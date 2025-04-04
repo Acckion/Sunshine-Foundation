@@ -1,4 +1,4 @@
-name: Build Sunshine
+name: Build Sunshine (Windows)
 
 on:
   push:
@@ -9,56 +9,6 @@ on:
       - main
 
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential cmake ninja-build \
-            libboost-all-dev doxygen graphviz libminiupnpc-dev \
-            libopus-dev libssl-dev nodejs pkg-config
-
-      - name: Build project
-        run: |
-          mkdir build
-          cmake -B build -G Ninja -S .
-          ninja -C build
-
-      - name: Package project (deb and rpm)
-        run: |
-          cpack -G DEB --config ./build/CPackConfig.cmake
-          cpack -G RPM --config ./build/CPackConfig.cmake
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-        with:
-          submodules: recursive
-
-      - name: Install dependencies
-        run: |
-          brew update
-          brew install boost cmake doxygen graphviz miniupnpc opus \
-            openssl@3 pkg-config node
-
-      - name: Build project
-        run: |
-          mkdir build
-          cmake -B build -G Ninja -S .
-          ninja -C build
-
-      - name: Package project (DragNDrop)
-        run: |
-          cpack -G DragNDrop --config ./build/CPackConfig.cmake
-
   build-windows:
     runs-on: windows-latest
     steps:
