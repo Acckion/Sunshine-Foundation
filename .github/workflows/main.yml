@@ -17,7 +17,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: false # 不处理子模块
+          submodules: false # 不自动初始化子模块
+
+      # 手动初始化和更新子模块
+      - name: Initialize Submodules
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive
+
+      # 下载 FFmpeg 预编译二进制文件
+      - name: Download FFmpeg Binaries
+        run: |
+          mkdir -p third-party/build-deps/dist/Windows-AMD64
+          curl -L -o ffmpeg.zip https://example.com/path/to/ffmpeg-binaries.zip
+          unzip ffmpeg.zip -d third-party/build-deps/dist/Windows-AMD64
 
       # 设置 MSYS2 环境并安装依赖
       - name: Setup MSYS2 and Install Dependencies
@@ -65,10 +78,8 @@ jobs:
         run: |
           mkdir -p artifacts
           cd build
-          # 使用 CPack 打包为 NSIS 和 ZIP 格式
           cpack -G NSIS
           cpack -G ZIP
-          # 移动打包结果到 artifacts 目录
           mv ./cpack_artifacts/Sunshine.exe ../artifacts/sunshine-windows-installer.exe
           mv ./cpack_artifacts/Sunshine.zip ../artifacts/sunshine-windows-portable.zip
 
