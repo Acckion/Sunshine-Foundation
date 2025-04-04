@@ -1,0 +1,36 @@
+name: Build Sunshine (Windows)111
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install MSYS2 and dependencies
+        run: |
+          choco install msys2 -y
+          refreshenv
+          msys2 -c "pacman -Syu --noconfirm"
+          msys2 -c "pacman -S --noconfirm mingw-w64-ucrt-x86_64-{boost,cmake,cppwinrt,curl-winssl,graphviz,MinHook,miniupnpc,nlohmann-json,nodejs,nsis,onevpl,openssl,opus,toolchain}"
+
+      - name: Build project
+        run: |
+          mkdir build
+          cmake -B build -G Ninja -S .
+          ninja -C build
+
+      - name: Package project (NSIS and ZIP)
+        run: |
+          cpack -G NSIS --config ./build/CPackConfig.cmake
+          cpack -G ZIP --config ./build/CPackConfig.cmake
