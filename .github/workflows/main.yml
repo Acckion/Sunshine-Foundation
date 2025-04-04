@@ -1,35 +1,30 @@
-name: "CodeQL"
+name: "Build and Release"
 
 on:
   push:
-    branches: ["master"]
+    branches: ["master"]  # 当推送到 master 分支时触发
   pull_request:
-    branches: ["master"]
-  schedule:
-    - cron: '00 12 * * 0'  # 每周日 12:00 UTC
+    branches: ["master"]  # 当针对 master 分支的 PR 时触发
+  workflow_dispatch:       # 支持手动触发
 
 concurrency:
   group: "${{ github.workflow }}-${{ github.ref }}"
   cancel-in-progress: true
 
 jobs:
-  analyze:
-    name: Analyze (Windows)
+  build:
+    name: Build Executable
     runs-on: windows-latest
-    timeout-minutes: 360
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
+    timeout-minutes: 60
 
     steps:
       # 检出代码
-      - name: Checkout repository
+      - name: Checkout Code
         uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: recursive  # 确保子模块被正确检出
 
-      # 设置 MSYS2 环境并更新 CMake
+      # 设置 MSYS2 环境并安装依赖
       - name: Setup MSYS2 and Install Dependencies
         uses: msys2/setup-msys2@v2
         with:
@@ -39,72 +34,51 @@ jobs:
             base-devel
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-gcc
-            mingw-w64-ucrt-x86_64-gdb
             mingw-w64-ucrt-x86_64-boost
             mingw-w64-ucrt-x86_64-curl
             mingw-w64-ucrt-x86_64-openssl
             mingw-w64-ucrt-x86_64-nlohmann-json
             mingw-w64-ucrt-x86_64-miniupnpc
-            mingw-w64-ucrt-x86_64-nodejs
-            mingw-w64-ucrt-x86_64-nsis
             mingw-w64-ucrt-x86_64-toolchain
 
-      # 初始化 CodeQL
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v3
-        with:
-          languages: cpp
-          config: |
-            paths-ignore:
-              - build
-              - node_modules
-              - third-party
+      # 构建项目
+      - name: Build Project
+        shell: msys2 {0}
+        run: |
+          mkdir build
+          cd build
+          cmake -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release ..
+          mingw32-make -j$(nproc)
 
-      # # 预构建步骤（可选）
-      # - name: Prebuild
-      #   id: prebuild
-      #   run: |
-      #     # 如果有预构建脚本，可以在此运行
-      #     filename=".codeql-prebuild-cpp-windows.sh"
-      #     if [ -f "./${filename}" ]; then
-      #       echo "Running prebuild script: ${filename}"
-      #       ./${filename}
-      #     fi
+      # 打包可执行文件
+      - name: Package Executable
+        shell: msys2 {0}
+        run: |
+          mkdir -p artifacts
+          cp ./build/your_executable.exe ./artifacts/your_executable.exe
 
-      # 自动构建
-      - name: Autobuild
-        if: steps.prebuild.outputs.skip_autobuild != 'true'
-        uses: github/codeql-action/autobuild@v3
-
-      # 执行 CodeQL 分析
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-        with:
-          category: "/language:cpp"
-          output: sarif-results
-          upload: failure-only
-
-      # 过滤 SARIF 文件
-      - name: Filter SARIF
-        uses: advanced-security/filter-sarif@v1
-        with:
-          input: sarif-results/cpp.sarif
-          output: sarif-results/cpp.sarif
-          patterns: |
-            -build/**
-            -node_modules/**
-            -third\-party/**
-
-      # 上传 SARIF 文件
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: sarif-results/cpp.sarif
-
-      # 上传分析结果作为构建产物
-      - name: Upload loc as a Build Artifact
+      # 上传构建产物
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: sarif-results-cpp-windows
-          path: sarif-results
-          retention-days: 1
+          name: executable
+          path: artifacts/
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # 创建或更新 GitHub Release
+      - name: Create/Update GitHub Release
+        uses: ncipollo/release-action@v1
+        with:
+          tag: ${{ github.ref_name }}
+          name: "Release ${{ github.ref_name }}"
+          body: |
+            This release includes:
+            - The latest build of the project.
+          draft: false
+          prerelease: false
+          artifacts: artifacts/your_executable.exe
+          token: ${{ secrets.GITHUB_TOKEN }}
