@@ -17,13 +17,13 @@ jobs:
       - name: Install MSYS2
         run: |
           choco install msys2 -y
-          refreshenv
+          set PATH=C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin;%PATH%
 
       # 更新 MSYS2 并安装依赖项
       - name: Update MSYS2 and install dependencies
         run: |
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-ucrt-x86_64-{boost,cmake,cppwinrt,curl-winssl,graphviz,MinHook,miniupnpc,nlohmann-json,nodejs,nsis,onevpl,openssl,opus,toolchain}"
+          bash -lc "pacman -Syu --noconfirm"
+          bash -lc "pacman -S --noconfirm mingw-w64-ucrt-x86_64-{boost,cmake,cppwinrt,curl-winssl,graphviz,MinHook,miniupnpc,nlohmann-json,nodejs,nsis,onevpl,openssl,opus,toolchain}"
 
       # 构建项目
       - name: Build project
