@@ -1,0 +1,68 @@
+name: Build Sunshine
+
+on:
+  push:
+    branches:
+      - main  # 当推送到 main 分支时触发
+  pull_request:
+    branches:
+      - main  # 当有 PR 提交到 main 分支时触发
+  workflow_dispatch:  # 手动触发工作流
+
+jobs:
+  build:
+    runs-on: windows-latest  # 使用 Windows 环境
+
+    steps:
+      # 检出代码
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: true  # 确保检出子模块
+
+      # 安装 MSYS2
+      - name: Install MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          path-type: inherit
+
+      # 安装依赖
+      - name: Install dependencies
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm \
+            doxygen \
+            git \
+            mingw-w64-ucrt-x86_64-boost \
+            mingw-w64-ucrt-x86_64-cmake \
+            mingw-w64-ucrt-x86_64-cppwinrt \
+            mingw-w64-ucrt-x86_64-curl-winssl \
+            mingw-w64-ucrt-x86_64-graphviz \
+            mingw-w64-ucrt-x86_64-MinHook \
+            mingw-w64-ucrt-x86_64-miniupnpc \
+            mingw-w64-ucrt-x86_64-nlohmann-json \
+            mingw-w64-ucrt-x86_64-nodejs \
+            mingw-w64-ucrt-x86_64-nsis \
+            mingw-w64-ucrt-x86_64-onevpl \
+            mingw-w64-ucrt-x86_64-openssl \
+            mingw-w64-ucrt-x86_64-opus \
+            mingw-w64-ucrt-x86_64-toolchain
+
+      # 构建项目
+      - name: Build Sunshine
+        run: |
+          cmake -B build -G Ninja -S .
+          ninja -C build
+
+      # 打包构建产物
+      - name: Package Sunshine
+        run: |
+          cpack -G NSIS --config ./build/CPackConfig.cmake
+
+      # 上传构建产物
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: sunshine-binaries
+          path: build/*.exe
