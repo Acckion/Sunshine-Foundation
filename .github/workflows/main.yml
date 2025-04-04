@@ -42,19 +42,15 @@ jobs:
             mingw-w64-ucrt-x86_64-miniupnpc
             mingw-w64-ucrt-x86_64-toolchain
 
-      # 验证 Git 是否安装成功
-      - name: Verify Git Installation
-        shell: msys2 {0}
-        run: |
-          git --version
-
       # 安装 MinHook
       - name: Install MinHook
         shell: msys2 {0}
         run: |
           git clone https://github.com/TsudaKageyu/minhook.git
           cd minhook
-          mkdir build
+          if [ ! -d "build" ]; then
+            mkdir build
+          fi
           cd build
           cmake -G "MinGW Makefiles" ..
           mingw32-make
