@@ -17,7 +17,7 @@ jobs:
       - name: Install MSYS2
         run: |
           choco install msys2 -y
-          set PATH=C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin;%PATH%
+          $env:PATH = 'C:\tools\msys64\usr\bin;C:\tools\msys64\mingw64\bin;' + $env:PATH
 
       # 更新 MSYS2 并安装依赖项
       - name: Update MSYS2 and install dependencies
