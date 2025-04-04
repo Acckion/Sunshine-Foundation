@@ -2,6 +2,9 @@
 	path = packaging/linux/flatpak/deps/flatpak-builder-tools
 	url = https://github.com/flatpak/flatpak-builder-tools.git
 	branch = master
+[submodule "packaging/linux/flatpak/deps/org.flatpak.Builder.BaseApp"]
+	path = packaging/linux/flatpak/deps/org.flatpak.Builder.BaseApp
+	url = https://github.com/flathub/org.flatpak.Builder.BaseAppl.git
 [submodule "packaging/linux/flatpak/deps/shared-modules"]
 	path = packaging/linux/flatpak/deps/shared-modules
 	url = https://github.com/flathub/shared-modules.git
