@@ -60,16 +60,16 @@ jobs:
               - node_modules
               - third-party
 
-      # 预构建步骤（可选）
-      - name: Prebuild
-        id: prebuild
-        run: |
-          # 如果有预构建脚本，可以在此运行
-          filename=".codeql-prebuild-cpp-windows.sh"
-          if [ -f "./${filename}" ]; then
-            echo "Running prebuild script: ${filename}"
-            ./${filename}
-          fi
+      # # 预构建步骤（可选）
+      # - name: Prebuild
+      #   id: prebuild
+      #   run: |
+      #     # 如果有预构建脚本，可以在此运行
+      #     filename=".codeql-prebuild-cpp-windows.sh"
+      #     if [ -f "./${filename}" ]; then
+      #       echo "Running prebuild script: ${filename}"
+      #       ./${filename}
+      #     fi
 
       # 自动构建
       - name: Autobuild
