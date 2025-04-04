@@ -1,38 +1,80 @@
 name: Build Sunshine (Windows)
 
 on:
-  workflow_dispatch: # 支持手动触发
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  build-windows:
-    runs-on: windows-latest
+  build_win:
+    name: Build and Package for Windows
+    runs-on: windows-2019
+
     steps:
-      # 检出代码，不处理子模块
-      - name: Checkout code
-        uses: actions/checkout@v3
+      # 检出代码
+      - name: Checkout Code
+        uses: actions/checkout@v4
         with:
-          submodules: false
+          submodules: false # 不处理子模块
 
-      # 安装 MSYS2
-      - name: Install MSYS2
-        run: |
-          choco install msys2 -y
-
-      # 更新 MSYS2 并安装依赖项
-      - name: Update MSYS2 and install dependencies
-        run: |
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -Syu --noconfirm"
-          C:\tools\msys64\usr\bin\bash.exe -lc "pacman -S --noconfirm mingw-w64-ucrt-x86_64-{boost,cmake,cppwinrt,curl-winssl,graphviz,MinHook,miniupnpc,nlohmann-json,nodejs,nsis,onevpl,openssl,opus,toolchain}"
+      # 设置 MSYS2 环境并安装依赖
+      - name: Setup MSYS2 and Install Dependencies
+        uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            base-devel
+            diffutils
+            git
+            make
+            mingw-w64-x86_64-binutils
+            mingw-w64-x86_64-boost
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-curl
+            mingw-w64-x86_64-miniupnpc
+            mingw-w64-x86_64-nlohmann-json
+            mingw-w64-x86_64-nodejs
+            mingw-w64-x86_64-nsis
+            mingw-w64-x86_64-onevpl
+            mingw-w64-x86_64-openssl
+            mingw-w64-x86_64-opus
+            mingw-w64-x86_64-toolchain
+            nasm
+            wget
+            yasm
 
       # 构建项目
-      - name: Build project
+      - name: Build Project
+        shell: msys2 {0}
         run: |
           mkdir build
-          cmake -B build -G Ninja -S .
-          ninja -C build
+          cd build
+          cmake \
+            -DBUILD_WERROR=ON \
+            -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+            -DSUNSHINE_ASSETS_DIR=assets \
+            -G "MinGW Makefiles" \
+            ..
+          mingw32-make -j$(nproc)
 
       # 打包项目
-      - name: Package project (NSIS and ZIP)
+      - name: Package Project
+        shell: msys2 {0}
         run: |
-          cpack -G NSIS --config ./build/CPackConfig.cmake
-          cpack -G ZIP --config ./build/CPackConfig.cmake
+          mkdir -p artifacts
+          cd build
+          # 使用 CPack 打包为 NSIS 和 ZIP 格式
+          cpack -G NSIS
+          cpack -G ZIP
+          # 移动打包结果到 artifacts 目录
+          mv ./cpack_artifacts/Sunshine.exe ../artifacts/sunshine-windows-installer.exe
+          mv ./cpack_artifacts/Sunshine.zip ../artifacts/sunshine-windows-portable.zip
+
+      # 上传构建产物
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sunshine-windows
+          path: artifacts/
