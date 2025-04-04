@@ -25,12 +25,16 @@ jobs:
           git submodule sync --recursive
           git submodule update --init --recursive
 
+      # 准备 FFmpeg 目录
+      - name: Prepare FFmpeg Directory
+        run: |
+          New-Item -ItemType Directory -Path "third-party/build-deps/dist/Windows-AMD64" -Force
+
       # 下载 FFmpeg 预编译二进制文件
       - name: Download FFmpeg Binaries
         run: |
-          mkdir -p third-party/build-deps/dist/Windows-AMD64
           curl -L -o ffmpeg.zip https://example.com/path/to/ffmpeg-binaries.zip
-          unzip ffmpeg.zip -d third-party/build-deps/dist/Windows-AMD64
+          tar -xf ffmpeg.zip -C third-party/build-deps/dist/Windows-AMD64
 
       # 设置 MSYS2 环境并安装依赖
       - name: Setup MSYS2 and Install Dependencies
