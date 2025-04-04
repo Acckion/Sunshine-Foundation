@@ -3,66 +3,84 @@ name: Build Sunshine
 on:
   push:
     branches:
-      - main  # 当推送到 main 分支时触发
+      - main
   pull_request:
     branches:
-      - main  # 当有 PR 提交到 main 分支时触发
-  workflow_dispatch:  # 手动触发工作流
+      - main
 
 jobs:
-  build:
-    runs-on: windows-latest  # 使用 Windows 环境
-
+  build-linux:
+    runs-on: ubuntu-latest
     steps:
-      # 检出代码
       - name: Checkout code
         uses: actions/checkout@v3
         with:
-          submodules: true  # 确保检出子模块
+          submodules: recursive
 
-      # 安装 MSYS2
-      - name: Install MSYS2
-        uses: msys2/setup-msys2@v2
-        with:
-          update: true
-          path-type: inherit
-
-      # 安装依赖
       - name: Install dependencies
         run: |
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm \
-            doxygen \
-            git \
-            mingw-w64-ucrt-x86_64-boost \
-            mingw-w64-ucrt-x86_64-cmake \
-            mingw-w64-ucrt-x86_64-cppwinrt \
-            mingw-w64-ucrt-x86_64-curl-winssl \
-            mingw-w64-ucrt-x86_64-graphviz \
-            mingw-w64-ucrt-x86_64-MinHook \
-            mingw-w64-ucrt-x86_64-miniupnpc \
-            mingw-w64-ucrt-x86_64-nlohmann-json \
-            mingw-w64-ucrt-x86_64-nodejs \
-            mingw-w64-ucrt-x86_64-nsis \
-            mingw-w64-ucrt-x86_64-onevpl \
-            mingw-w64-ucrt-x86_64-openssl \
-            mingw-w64-ucrt-x86_64-opus \
-            mingw-w64-ucrt-x86_64-toolchain
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build \
+            libboost-all-dev doxygen graphviz libminiupnpc-dev \
+            libopus-dev libssl-dev nodejs pkg-config
 
-      # 构建项目
-      - name: Build Sunshine
+      - name: Build project
         run: |
+          mkdir build
           cmake -B build -G Ninja -S .
           ninja -C build
 
-      # 打包构建产物
-      - name: Package Sunshine
+      - name: Package project (deb and rpm)
+        run: |
+          cpack -G DEB --config ./build/CPackConfig.cmake
+          cpack -G RPM --config ./build/CPackConfig.cmake
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install dependencies
+        run: |
+          brew update
+          brew install boost cmake doxygen graphviz miniupnpc opus \
+            openssl@3 pkg-config node
+
+      - name: Build project
+        run: |
+          mkdir build
+          cmake -B build -G Ninja -S .
+          ninja -C build
+
+      - name: Package project (DragNDrop)
+        run: |
+          cpack -G DragNDrop --config ./build/CPackConfig.cmake
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install MSYS2 and dependencies
+        run: |
+          choco install msys2 -y
+          refreshenv
+          msys2 -c "pacman -Syu --noconfirm"
+          msys2 -c "pacman -S --noconfirm mingw-w64-ucrt-x86_64-{boost,cmake,cppwinrt,curl-winssl,graphviz,MinHook,miniupnpc,nlohmann-json,nodejs,nsis,onevpl,openssl,opus,toolchain}"
+
+      - name: Build project
+        run: |
+          mkdir build
+          cmake -B build -G Ninja -S .
+          ninja -C build
+
+      - name: Package project (NSIS and ZIP)
         run: |
           cpack -G NSIS --config ./build/CPackConfig.cmake
-
-      # 上传构建产物
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: sunshine-binaries
-          path: build/*.exe
+          cpack -G ZIP --config ./build/CPackConfig.cmake
